@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     res.cookies.set(
       SESSION_COOKIE_NAME,
       token,
-      getSessionCookieOptions(7 * 24 * 60 * 60)
+      getSessionCookieOptions(7 * 24 * 60 * 60, req)
     );
     return res;
   }
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   res.cookies.set(
     SESSION_COOKIE_NAME,
     token,
-    getSessionCookieOptions(7 * 24 * 60 * 60)
+    getSessionCookieOptions(7 * 24 * 60 * 60, req)
   );
   return res;
 }

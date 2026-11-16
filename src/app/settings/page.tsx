@@ -122,7 +122,7 @@ export default function SettingsPage() {
   const webhookUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/api/webhooks/expay`
-      : "/api/webhooks/expay";
+      : "https://gamelykeys.com/api/webhooks/expay";
 
   async function handleCopyWebhook() {
     await navigator.clipboard.writeText(webhookUrl);

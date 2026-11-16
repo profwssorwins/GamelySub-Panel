@@ -135,7 +135,9 @@ export default function ResellersPage() {
   }
 
   function getPanelUrl(id: string) {
-    if (typeof window === "undefined") return `/panel?id=${id}`;
+    if (typeof window === "undefined") {
+      return `https://gamelykeys.com/panel?id=${encodeURIComponent(id)}`;
+    }
     return `${window.location.origin}/panel?id=${encodeURIComponent(id)}`;
   }
 

@@ -118,6 +118,7 @@ export default function LoginPage() {
                   value={resellerId}
                   onChange={(e) => setResellerId(e.target.value)}
                   placeholder="Ex: GM-A1B2C3D4"
+                  autoComplete="off"
                   required
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/[0.08] text-sm text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-blue-500"
                 />
@@ -138,6 +139,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite a senha admin"
+                  autoComplete="current-password"
                   required
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/[0.08] text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500"
                 />

@@ -25,11 +25,18 @@ export function timingSafeCompare(a: string, b: string): boolean {
   return crypto.timingSafeEqual(hashA, hashB);
 }
 
-export function getSessionCookieOptions(maxAgeSeconds: number) {
+export function getSessionCookieOptions(
+  maxAgeSeconds: number,
+  req?: Request
+) {
+  const isHttps = req
+    ? req.headers.get("x-forwarded-proto") === "https" ||
+      req.url.startsWith("https://")
+    : false;
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     path: "/",
     maxAge: maxAgeSeconds,
   };

@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://gamelykeys.com"),
   title: "Gamely — Painel do Fornecedor",
-  description: "Sub-painel white-label Gamely conectado à infraestrutura Cubyc",
+  description: "Portal Gamely (gamelykeys.com)",
+  icons: {
+    icon: "/logogamely.png",
+    apple: "/logogamely.png",
+  },
 };
 
 export default function RootLayout({
