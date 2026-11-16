@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import crypto from "crypto";
 import {
@@ -11,8 +12,30 @@ import {
 } from "./types";
 import { generateSubApiKey, hashPassword } from "./auth";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const STORE_PATH = path.join(DATA_DIR, "gamely-store.json");
+const PRIMARY_DATA_DIR = path.join(process.cwd(), "data");
+const FALLBACK_DATA_DIR = path.join(os.tmpdir(), "gamely-data");
+
+let resolvedDataDir: string | null = null;
+let memoryFallbackStore: GamelyStoreData | null = null;
+
+function getStorePath(): string | null {
+  if (resolvedDataDir) {
+    return path.join(resolvedDataDir, "gamely-store.json");
+  }
+  for (const dir of [PRIMARY_DATA_DIR, FALLBACK_DATA_DIR]) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.accessSync(dir, fs.constants.W_OK);
+      resolvedDataDir = dir;
+      return path.join(dir, "gamely-store.json");
+    } catch {
+      // Tenta próximo diretório (ex: /tmp em ambientes read-only como Vercel)
+    }
+  }
+  return null;
+}
 
 function defaultStore(): GamelyStoreData {
   return {
@@ -33,23 +56,31 @@ function defaultStore(): GamelyStoreData {
   };
 }
 
-function ensureStoreFile(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(STORE_PATH)) {
-    const initial = defaultStore();
-    fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
+function ensureStoreFile(): string | null {
+  const storePath = getStorePath();
+  if (!storePath) return null;
+  try {
+    if (!fs.existsSync(storePath)) {
+      const initial = memoryFallbackStore || defaultStore();
+      fs.writeFileSync(storePath, JSON.stringify(initial, null, 2), "utf8");
+    }
+    return storePath;
+  } catch {
+    return null;
   }
 }
 
 export function readStore(): GamelyStoreData {
-  ensureStoreFile();
+  const storePath = ensureStoreFile();
+  if (!storePath) {
+    if (!memoryFallbackStore) memoryFallbackStore = defaultStore();
+    return memoryFallbackStore;
+  }
   try {
-    const raw = fs.readFileSync(STORE_PATH, "utf8");
+    const raw = fs.readFileSync(storePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<GamelyStoreData>;
     const defaults = defaultStore();
-    return {
+    const loaded: GamelyStoreData = {
       settings: {
         cubycApiUrl:
           parsed.settings?.cubycApiUrl || defaults.settings.cubycApiUrl,
@@ -77,16 +108,25 @@ export function readStore(): GamelyStoreData {
       history: Array.isArray(parsed.history) ? parsed.history : [],
       charges: Array.isArray(parsed.charges) ? parsed.charges : [],
     };
+    memoryFallbackStore = loaded;
+    return loaded;
   } catch {
-    return defaultStore();
+    if (!memoryFallbackStore) memoryFallbackStore = defaultStore();
+    return memoryFallbackStore;
   }
 }
 
 export function writeStore(data: GamelyStoreData): void {
-  ensureStoreFile();
-  const tmpPath = `${STORE_PATH}.${crypto.randomBytes(4).toString("hex")}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
-  fs.renameSync(tmpPath, STORE_PATH);
+  memoryFallbackStore = data;
+  const storePath = ensureStoreFile();
+  if (!storePath) return;
+  try {
+    const tmpPath = `${storePath}.${crypto.randomBytes(4).toString("hex")}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
+    fs.renameSync(tmpPath, storePath);
+  } catch {
+    // Mantém em memória caso escrita falhe
+  }
 }
 
 export function getEffectiveSettings(): GamelySettings {

@@ -4,20 +4,15 @@ import { cookies } from "next/headers";
 export const SESSION_COOKIE_NAME = "gamely_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-let runtimeFallbackSecret: string | null = null;
-
 function getSessionSecret(): string {
   const envSecret = process.env.SESSION_SECRET?.trim();
   if (envSecret && envSecret.length >= 16) return envSecret;
 
-  if (process.env.NODE_ENV === "production") {
-    if (!runtimeFallbackSecret) {
-      runtimeFallbackSecret = crypto.randomBytes(32).toString("hex");
-    }
-    return runtimeFallbackSecret;
-  }
-
-  return "gamely-dev-secret-change-in-prod";
+  // Derivação determinística consistente entre workers/lambdas caso SESSION_SECRET não esteja no env
+  return crypto
+    .createHash("sha256")
+    .update(`gamely-session:${getAdminPassword()}`)
+    .digest("hex");
 }
 
 export function getAdminPassword(): string {

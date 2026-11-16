@@ -37,7 +37,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch("/api/panel/settings", { cache: "no-store" })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.settings) {
           setCubycApiUrl(d.settings.cubycApiUrl || "http://localhost:3000");
@@ -50,7 +50,8 @@ export default function SettingsPage() {
           setMaskedExpayKey(d.settings.expayApiKeyMasked || "");
           setMaskedWebhookSecret(d.settings.expayWebhookSecretMasked || "");
         }
-      });
+      })
+      .catch(() => {});
   }, []);
 
   async function handleSave(e: React.FormEvent) {
@@ -73,7 +74,7 @@ export default function SettingsPage() {
             : {}),
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFeedback({ type: "err", text: data?.error || "Erro ao salvar." });
       } else {
@@ -97,7 +98,7 @@ export default function SettingsPage() {
     setFeedback(null);
     try {
       const res = await fetch("/api/panel/settings", { method: "POST" });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setFeedback({
           type: "err",
