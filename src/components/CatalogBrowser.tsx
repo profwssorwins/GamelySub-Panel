@@ -117,17 +117,19 @@ export default function CatalogBrowser({
         setGames(results);
         setTotal(totalCount);
         setPage(1);
-        try {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({
-              exp: Date.now() + 5 * 60 * 1000,
-              results,
-              total: totalCount,
-            })
-          );
-        } catch {
-          // ignore storage quota errors
+        if (results.length > 0) {
+          try {
+            sessionStorage.setItem(
+              cacheKey,
+              JSON.stringify({
+                exp: Date.now() + 5 * 60 * 1000,
+                results,
+                total: totalCount,
+              })
+            );
+          } catch {
+            // ignore storage quota errors
+          }
         }
       }
     } catch {
