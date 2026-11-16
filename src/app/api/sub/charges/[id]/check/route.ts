@@ -3,6 +3,7 @@ import { resolveSubReseller, verifySameOrigin } from "@/lib/api-helpers";
 import { ExpayApiError, getExpayCharge } from "@/lib/expay-client";
 import {
   findChargeByIdOrChargeId,
+  flushStore,
   markChargePaidAndCreditOnce,
   updateChargeStatus,
 } from "@/lib/store";
@@ -44,6 +45,7 @@ export async function POST(
     const remote = await getExpayCharge(localCharge.chargeId);
     if (remote.status === "paid") {
       const result = markChargePaidAndCreditOnce(localCharge.id);
+      await flushStore();
       return NextResponse.json({
         charge: result.charge,
         balance: result.newBalance ?? reseller.balance,
@@ -53,6 +55,7 @@ export async function POST(
 
     const updated =
       updateChargeStatus(localCharge.id, remote.status) || localCharge;
+    await flushStore();
     return NextResponse.json({
       charge: updated,
       balance: reseller.balance,

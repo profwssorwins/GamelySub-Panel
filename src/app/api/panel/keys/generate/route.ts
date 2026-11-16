@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { handleApiError, requireAdmin } from "@/lib/api-helpers";
 import { generateCubycKeys } from "@/lib/cubyc-client";
 import {
+  flushStore,
   recordKeyGeneration,
   refundResellerBalance,
   reserveResellerBalance,
@@ -117,6 +118,7 @@ export async function POST(req: Request) {
         ? { resellerId: reservedResellerId, count: actualCount }
         : undefined
     );
+    await flushStore();
 
     return NextResponse.json({
       ...cubycRes,
@@ -126,6 +128,7 @@ export async function POST(req: Request) {
   } catch (err) {
     if (reservedResellerId && reservedAmount > 0) {
       refundResellerBalance(reservedResellerId, reservedAmount);
+      await flushStore();
     }
     return handleApiError(err);
   }

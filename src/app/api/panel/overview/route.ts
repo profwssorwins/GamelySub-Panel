@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-helpers";
 import { getCubycAccount, getCubycBalance } from "@/lib/cubyc-client";
-import { getEffectiveSettings, listHistory, listResellers } from "@/lib/store";
+import {
+  getEffectiveSettings,
+  isPersistentStorageConfigured,
+  listHistory,
+  listResellers,
+} from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +84,7 @@ export async function GET() {
 
   return NextResponse.json({
     brandName: settings.brandName,
+    persistentStorage: isPersistentStorageConfigured(),
     cubyc,
     metrics: {
       totalResellers,

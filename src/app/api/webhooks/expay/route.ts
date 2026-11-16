@@ -4,7 +4,9 @@ import { getExpayCharge } from "@/lib/expay-client";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import {
   findChargeByIdOrChargeId,
+  flushStore,
   getEffectiveSettings,
+  hydrateStore,
   markChargePaidAndCreditOnce,
   updateChargeStatus,
 } from "@/lib/store";
@@ -41,6 +43,7 @@ export async function POST(req: Request) {
   }
 
   const rawBody = await req.text();
+  await hydrateStore();
   const settings = getEffectiveSettings();
 
   if (settings.expayWebhookSecret) {
@@ -85,10 +88,12 @@ export async function POST(req: Request) {
     const verified = await getExpayCharge(localCharge.chargeId);
     if (verified.status === "paid") {
       markChargePaidAndCreditOnce(localCharge.id);
+      await flushStore();
     } else if (
       ["failed", "refunded", "expired", "canceled"].includes(verified.status)
     ) {
       updateChargeStatus(localCharge.id, verified.status as ChargeStatus);
+      await flushStore();
     }
   } catch {
     // Se a API ExPay falhar momentaneamente, retorna 502 para o gateway tentar novamente

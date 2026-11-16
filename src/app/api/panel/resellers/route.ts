@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-helpers";
-import { createReseller, listResellers, sanitizeReseller } from "@/lib/store";
+import { createReseller, flushStore, listResellers, sanitizeReseller } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     initialBalance: Number.isFinite(initialBalance) ? initialBalance : 0,
     notes: typeof body?.notes === "string" ? body.notes : "",
   });
+  await flushStore();
 
   return NextResponse.json({ reseller: sanitizeReseller(reseller) }, { status: 201 });
 }

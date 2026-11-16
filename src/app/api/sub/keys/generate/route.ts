@@ -7,6 +7,7 @@ import {
 import { generateCubycKeys } from "@/lib/cubyc-client";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import {
+  flushStore,
   recordKeyGeneration,
   refundResellerBalance,
   reserveResellerBalance,
@@ -113,6 +114,7 @@ export async function POST(req: Request) {
       },
       actualCount > 0 ? { resellerId: reseller.id, count: actualCount } : undefined
     );
+    await flushStore();
 
     const remainingBalance = Number(
       (reservation.reseller.balance + (reservedAmount - chargedAmount)).toFixed(2)
@@ -133,6 +135,7 @@ export async function POST(req: Request) {
   } catch (err) {
     if (reservedAmount > 0) {
       refundResellerBalance(reseller.id, reservedAmount);
+      await flushStore();
     }
     return handleSubApiError(err);
   }

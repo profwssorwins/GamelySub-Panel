@@ -18,6 +18,68 @@ const FALLBACK_DATA_DIR = path.join(os.tmpdir(), "gamely-data");
 let resolvedDataDir: string | null = null;
 let memoryFallbackStore: GamelyStoreData | null = null;
 
+const REMOTE_KEY = "gamely:store:v1";
+
+function getRedisConfig(): { url: string; token: string } | null {
+  const url = (
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    ""
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  const token = (
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    ""
+  ).trim();
+  if (!url || !token) return null;
+  return { url, token };
+}
+
+export function isPersistentStorageConfigured(): boolean {
+  if (getRedisConfig()) return true;
+  // Local/VPS (não-Vercel) persiste em disco normalmente
+  return !process.env.VERCEL;
+}
+
+export async function hydrateStore(): Promise<void> {
+  const redis = getRedisConfig();
+  if (!redis) return;
+  try {
+    const res = await fetch(`${redis.url}/get/${REMOTE_KEY}`, {
+      headers: { Authorization: `Bearer ${redis.token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const json = (await res.json()) as { result?: string | null };
+    if (json?.result && typeof json.result === "string") {
+      const parsed = JSON.parse(json.result) as Partial<GamelyStoreData>;
+      memoryFallbackStore = normalizeStore(parsed);
+    }
+  } catch {
+    // Fallback para disco/memória se Redis estiver inacessível
+  }
+}
+
+export async function flushStore(): Promise<void> {
+  const redis = getRedisConfig();
+  if (!redis || !memoryFallbackStore) return;
+  try {
+    await fetch(`${redis.url}/set/${REMOTE_KEY}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${redis.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(JSON.stringify(memoryFallbackStore)),
+      cache: "no-store",
+    });
+  } catch {
+    // Ignora falha transitória de rede
+  }
+}
+
 function getStorePath(): string | null {
   if (resolvedDataDir) {
     return path.join(resolvedDataDir, "gamely-store.json");
@@ -70,7 +132,42 @@ function ensureStoreFile(): string | null {
   }
 }
 
+function normalizeStore(parsed: Partial<GamelyStoreData>): GamelyStoreData {
+  const defaults = defaultStore();
+  return {
+    settings: {
+      cubycApiUrl:
+        parsed.settings?.cubycApiUrl || defaults.settings.cubycApiUrl,
+      cubycApiKey:
+        parsed.settings?.cubycApiKey !== undefined
+          ? parsed.settings.cubycApiKey
+          : defaults.settings.cubycApiKey,
+      brandName: parsed.settings?.brandName || defaults.settings.brandName,
+      defaultMarkupPrice:
+        typeof parsed.settings?.defaultMarkupPrice === "number"
+          ? parsed.settings.defaultMarkupPrice
+          : defaults.settings.defaultMarkupPrice,
+      expayApiUrl:
+        parsed.settings?.expayApiUrl || defaults.settings.expayApiUrl,
+      expayApiKey:
+        parsed.settings?.expayApiKey !== undefined
+          ? parsed.settings.expayApiKey
+          : defaults.settings.expayApiKey,
+      expayWebhookSecret:
+        parsed.settings?.expayWebhookSecret !== undefined
+          ? parsed.settings.expayWebhookSecret
+          : defaults.settings.expayWebhookSecret,
+    },
+    resellers: Array.isArray(parsed.resellers) ? parsed.resellers : [],
+    history: Array.isArray(parsed.history) ? parsed.history : [],
+    charges: Array.isArray(parsed.charges) ? parsed.charges : [],
+  };
+}
+
 export function readStore(): GamelyStoreData {
+  if (getRedisConfig() && memoryFallbackStore) {
+    return memoryFallbackStore;
+  }
   const storePath = ensureStoreFile();
   if (!storePath) {
     if (!memoryFallbackStore) memoryFallbackStore = defaultStore();
@@ -79,35 +176,7 @@ export function readStore(): GamelyStoreData {
   try {
     const raw = fs.readFileSync(storePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<GamelyStoreData>;
-    const defaults = defaultStore();
-    const loaded: GamelyStoreData = {
-      settings: {
-        cubycApiUrl:
-          parsed.settings?.cubycApiUrl || defaults.settings.cubycApiUrl,
-        cubycApiKey:
-          parsed.settings?.cubycApiKey !== undefined
-            ? parsed.settings.cubycApiKey
-            : defaults.settings.cubycApiKey,
-        brandName: parsed.settings?.brandName || defaults.settings.brandName,
-        defaultMarkupPrice:
-          typeof parsed.settings?.defaultMarkupPrice === "number"
-            ? parsed.settings.defaultMarkupPrice
-            : defaults.settings.defaultMarkupPrice,
-        expayApiUrl:
-          parsed.settings?.expayApiUrl || defaults.settings.expayApiUrl,
-        expayApiKey:
-          parsed.settings?.expayApiKey !== undefined
-            ? parsed.settings.expayApiKey
-            : defaults.settings.expayApiKey,
-        expayWebhookSecret:
-          parsed.settings?.expayWebhookSecret !== undefined
-            ? parsed.settings.expayWebhookSecret
-            : defaults.settings.expayWebhookSecret,
-      },
-      resellers: Array.isArray(parsed.resellers) ? parsed.resellers : [],
-      history: Array.isArray(parsed.history) ? parsed.history : [],
-      charges: Array.isArray(parsed.charges) ? parsed.charges : [],
-    };
+    const loaded = normalizeStore(parsed);
     memoryFallbackStore = loaded;
     return loaded;
   } catch {

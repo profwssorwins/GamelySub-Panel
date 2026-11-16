@@ -17,6 +17,7 @@ import type { KeyHistoryEntry } from "@/lib/types";
 
 interface OverviewData {
   brandName: string;
+  persistentStorage?: boolean;
   cubyc: {
     connected: boolean;
     error?: string;
@@ -71,6 +72,19 @@ export default function DashboardPage() {
       subtitle="Visão geral da infraestrutura Cubyc e operação Gamely"
     >
       <div className="space-y-6">
+        {data && data.persistentStorage === false && (
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-start gap-3 text-xs text-rose-200">
+            <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <strong>Armazenamento efêmero detectado (Vercel sem banco compartilhado):</strong>{" "}
+              cada função serverless usa seu próprio <code>/tmp</code>. Conecte um{" "}
+              <strong>Upstash Redis / Vercel KV</strong> nas variáveis de ambiente da Vercel (
+              <code>KV_REST_API_URL</code> e <code>KV_REST_API_TOKEN</code> ou{" "}
+              <code>UPSTASH_REDIS_REST_URL</code> e <code>UPSTASH_REDIS_REST_TOKEN</code>) para que sub-revendedores, saldos e configurações sejam compartilhados entre todas as rotas.
+            </div>
+          </div>
+        )}
+
         {/* Status da Infraestrutura Cubyc */}
         <div className="bg-[#080b12] border border-zinc-800/80 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">

@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { resolveSubReseller, verifySameOrigin } from "@/lib/api-helpers";
 import { createExpayPixCharge, ExpayApiError } from "@/lib/expay-client";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { createChargeRecord, listChargesForReseller } from "@/lib/store";
+import {
+  createChargeRecord,
+  flushStore,
+  listChargesForReseller,
+} from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +78,7 @@ export async function POST(req: Request) {
       expiresAt: expayRes.expiresAt,
       creditedAt: null,
     });
+    await flushStore();
 
     return NextResponse.json({ charge }, { status: 201 });
   } catch (err) {

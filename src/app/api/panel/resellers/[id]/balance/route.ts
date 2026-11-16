@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-helpers";
-import { adjustResellerBalance } from "@/lib/store";
+import { adjustResellerBalance, flushStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,7 @@ export async function POST(
       { status: 404 }
     );
   }
+  await flushStore();
 
   return NextResponse.json({ reseller: updated });
 }

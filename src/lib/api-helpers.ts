@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { extractBearerToken, getSession, isAdminAuthenticated } from "./auth";
 import { CubycApiError } from "./cubyc-client";
-import { findResellerByApiKey, findResellerById } from "./store";
+import { findResellerByApiKey, findResellerById, hydrateStore } from "./store";
 import { SubReseller } from "./types";
 
 export async function requireAdmin(req?: Request): Promise<NextResponse | null> {
@@ -18,6 +18,7 @@ export async function requireAdmin(req?: Request): Promise<NextResponse | null> 
       { status: 401 }
     );
   }
+  await hydrateStore();
   return null;
 }
 
@@ -41,6 +42,7 @@ export function verifySameOrigin(req: Request): boolean {
 export async function resolveSubReseller(
   req: Request
 ): Promise<{ reseller?: SubReseller; errorResponse?: NextResponse }> {
+  await hydrateStore();
   const bearer = extractBearerToken(req);
   if (bearer) {
     const reseller = findResellerByApiKey(bearer);

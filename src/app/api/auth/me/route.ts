@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { findResellerById } from "@/lib/store";
+import { findResellerById, hydrateStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ export async function GET() {
   }
 
   if (session.role === "reseller" && session.resellerId) {
+    await hydrateStore();
     const reseller = findResellerById(session.resellerId);
     if (!reseller || reseller.status !== "active") {
       return NextResponse.json({ authenticated: false });

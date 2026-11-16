@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-helpers";
 import { generateSubApiKey, hashPassword } from "@/lib/auth";
-import { deleteReseller, sanitizeReseller, updateReseller } from "@/lib/store";
+import { deleteReseller, flushStore, sanitizeReseller, updateReseller } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,7 @@ export async function PATCH(
       { status: 404 }
     );
   }
+  await flushStore();
 
   return NextResponse.json({ reseller: sanitizeReseller(updated) });
 }
@@ -74,6 +75,7 @@ export async function DELETE(
       { status: 404 }
     );
   }
+  await flushStore();
 
   return NextResponse.json({ success: true });
 }

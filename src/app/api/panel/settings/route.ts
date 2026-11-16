@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleApiError, requireAdmin } from "@/lib/api-helpers";
 import { getCubycAccount, getCubycBalance } from "@/lib/cubyc-client";
-import { getEffectiveSettings, updateSettings } from "@/lib/store";
+import { flushStore, getEffectiveSettings, updateSettings } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +98,7 @@ export async function PUT(req: Request) {
   }
 
   const updated = updateSettings(patch);
+  await flushStore();
   return NextResponse.json({
     success: true,
     settings: {

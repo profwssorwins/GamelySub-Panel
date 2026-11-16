@@ -7,7 +7,7 @@ import {
   timingSafeCompare,
 } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { findResellerById, listResellers } from "@/lib/store";
+import { findResellerById, hydrateStore, listResellers } from "@/lib/store";
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   }
 
   // Modo sub-revendedor: acesso exclusivo por ID
+  await hydrateStore();
   const resellerId = typeof body?.id === "string" ? body.id.trim() : "";
   if (!resellerId || resellerId.length > 64) {
     return NextResponse.json(
