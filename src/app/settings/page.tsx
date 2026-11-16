@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [cubycApiUrl, setCubycApiUrl] = useState("http://localhost:3000");
+  const [cubycApiUrl, setCubycApiUrl] = useState("https://cubyc.com.br");
   const [cubycApiKey, setCubycApiKey] = useState("");
   const [maskedKey, setMaskedKey] = useState("");
   const [brandName, setBrandName] = useState("Gamely");
@@ -40,7 +40,7 @@ export default function SettingsPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.settings) {
-          setCubycApiUrl(d.settings.cubycApiUrl || "http://localhost:3000");
+          setCubycApiUrl(d.settings.cubycApiUrl || "https://cubyc.com.br");
           setMaskedKey(d.settings.cubycApiKeyMasked || "");
           setBrandName(d.settings.brandName || "Gamely");
           setDefaultMarkupPrice(String(d.settings.defaultMarkupPrice ?? 2.5));

@@ -54,8 +54,14 @@ export async function hydrateStore(): Promise<void> {
     if (!res.ok) return;
     const json = (await res.json()) as { result?: string | null };
     if (json?.result && typeof json.result === "string") {
-      const parsed = JSON.parse(json.result) as Partial<GamelyStoreData>;
-      memoryFallbackStore = normalizeStore(parsed);
+      let parsed: unknown = JSON.parse(json.result);
+      // Compatibilidade caso tenha sido salvo duplamente serializado
+      if (typeof parsed === "string") {
+        parsed = JSON.parse(parsed);
+      }
+      if (parsed && typeof parsed === "object") {
+        memoryFallbackStore = normalizeStore(parsed as Partial<GamelyStoreData>);
+      }
     }
   } catch {
     // Fallback para disco/memória se Redis estiver inacessível
@@ -66,13 +72,17 @@ export async function flushStore(): Promise<void> {
   const redis = getRedisConfig();
   if (!redis || !memoryFallbackStore) return;
   try {
-    await fetch(`${redis.url}/set/${REMOTE_KEY}`, {
+    await fetch(`${redis.url}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${redis.token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(JSON.stringify(memoryFallbackStore)),
+      body: JSON.stringify([
+        "SET",
+        REMOTE_KEY,
+        JSON.stringify(memoryFallbackStore),
+      ]),
       cache: "no-store",
     });
   } catch {
@@ -100,9 +110,15 @@ function getStorePath(): string | null {
 }
 
 function defaultStore(): GamelyStoreData {
+  const defaultCubycUrl =
+    process.env.CUBYC_API_URL?.trim() ||
+    (process.env.VERCEL || process.env.NODE_ENV === "production"
+      ? "https://cubyc.com.br"
+      : "http://localhost:3000");
+
   return {
     settings: {
-      cubycApiUrl: process.env.CUBYC_API_URL?.trim() || "http://localhost:3000",
+      cubycApiUrl: defaultCubycUrl,
       cubycApiKey: process.env.CUBYC_API_KEY?.trim() || "",
       brandName: "Gamely",
       defaultMarkupPrice: 2.5,
