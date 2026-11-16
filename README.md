@@ -9,10 +9,9 @@ Sub-painel white-label em **Next.js 16 + React 19 + Tailwind CSS v4** para opera
    cd Gamely
    ```
 2. Configure `.env.local` (copie de `.env.example` se necessário):
-   - `CUBYC_API_URL`: URL da sua instância Cubyc (ex: `http://localhost:3000`)
-   - `CUBYC_API_KEY`: API Key do cliente/fornecedor gerada na Cubyc (`cy_...` ou `sk_...`)
-   - `ADMIN_PASSWORD`: Senha de acesso ao painel Gamely (padrão dev: `gamely-admin-2026`)
+   - `ADMIN_PASSWORD`: Senha de acesso ao painel Admin Gamely (padrão dev: `gamely-admin-2026`)
    - `SESSION_SECRET`: Segredo HMAC para assinar cookies de sessão
+   *(A URL/API Key da Cubyc e da ExPay Brasil são configuradas diretamente pela aba **Configurações** do painel Admin.)*
 3. Instale e inicie:
    ```bash
    npm install
